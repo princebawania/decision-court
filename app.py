@@ -37,10 +37,14 @@ st.caption("Adversarial multi-agent decision review — two AI advocates argue "
 
 with st.sidebar:
     st.header("Settings")
-    api_key = st.text_input(
-        "Groq API key", type="password",
-        value=os.environ.get("GROQ_API_KEY", ""),
-        help="Free key at console.groq.com — no card needed.")
+    server_key = os.environ.get("GROQ_API_KEY", "")
+    if server_key:
+        st.success("✅ API key configured on the server — nothing to enter.")
+        api_key = server_key
+    else:
+        api_key = st.text_input(
+            "Groq API key", type="password",
+            help="Free key at console.groq.com — no card needed.")
     st.divider()
     st.subheader("Try an example")
     example = st.radio("Examples", EXAMPLES, index=None,
