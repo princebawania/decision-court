@@ -1,47 +1,41 @@
-# DecisionCourt — Adversarial Multi-Agent Decision Review
+# ⚖️ DecisionCourt
 
-Bring it a hard decision. Instead of one agreeable LLM answer, you get a
-**structured trial**: two AI advocates independently research and argue
-opposing sides, a fact-checker verifies every claim they make against web
-sources, and a judge weighs the verified evidence against *your* priorities —
-delivering a verdict with a confidence level and the exact conditions that
-would flip it.
+**Live demo: https://decision-court-10.streamlit.app** — bring your own dilemma, no API key needed.
 
-```
-$ python main.py "Should I do a Masters abroad or take my placement offer?" \
-                 --priorities "career growth, finances, learning curve"
-```
+Ask ChatGPT "should I take this job?" and it'll mostly agree with whatever you
+were already leaning towards. LLMs are people-pleasers. That's a bad property
+in a decision advisor.
 
-```
-[Herald]        Option A (PRO argues): take the placement offer
-                Option B (CON argues): pursue the Masters abroad
-[Advocate PRO]  searching: placement offer vs masters ROI ...
-[Advocate CON]  searching: MS abroad career outcomes 2026 ...
-[Fact-Checker]  verdicts: {'supported': 3, 'unverified': 2, 'contradicted': 1}
-[Revise]        Advocate PRO must fix 1 contradicted claim(s)
-[Judge]         VERDICT: take the placement offer (confidence 71%)
-[Clerk]         Decision memo saved: verdicts/verdict_20260704_183000.md
-```
+So I built the opposite: a courtroom. Two AI agents get *assigned* opposing
+sides of your decision. Each one researches the web on its own and builds the
+strongest case it can. A fact-checker then audits every claim they made — and
+if a claim turns out to be contradicted by sources, that advocate gets sent
+back to rewrite its case. Only after cross-rebuttals does a judge weigh
+everything against the priorities *you* stated and hand down a verdict, with a
+confidence score and the conditions under which it would flip.
 
-## The problem
+The point isn't that the verdict is always right. The point is that no single
+agent gets to be sycophantic, because disagreement is literally someone's job.
 
-Ask a single LLM "should I do X?" and it largely tells you what you want to
-hear — sycophancy and one-sided reasoning are documented failure modes of
-instruction-tuned models. People make consequential decisions (careers,
-money, product bets) on exactly this kind of advice.
+## Why this needs multiple agents
 
-**The engineering fix is structural, not prompt-deep:** make disagreement a
-job. One agent is *paid* to argue for, one *paid* to argue against, neither
-sees the other's research while building its case, and nothing reaches the
-judge without passing through an independent fact-check. A single agent
-cannot do this — it cannot genuinely argue against itself, and it cannot
-audit its own claims. That is why this system is multi-agent by necessity,
-not by decoration.
+I tried to be honest with myself about this, since "multi-agent" is easy to
+fake with one agent and extra steps. Two reasons it can't collapse into one:
 
-## Architecture
+1. An agent can't genuinely argue against itself. The advocates here don't
+   even see each other's research while building their cases (isolated state
+   keys in LangGraph), so neither can anchor on the other.
+2. An agent can't audit its own claims. The fact-checker runs fresh searches
+   on every claim, independent of the advocate that made it.
 
-**Orchestration pattern: Parallel + Aggregator** (adversarial variant), with
-a **fact-check gate that forms a conditional cycle**.
+During one of my test runs, the PRO advocate claimed car ownership costs
+"$9,122/year according to AAA" — the fact-checker searched it, found sources
+saying otherwise, marked it ❌ contradicted, and forced a rewrite. Watching
+that happen live is basically the whole project in one moment.
+
+## How it's wired
+
+Pattern: **Parallel + Aggregator**, with a fact-check gate that loops back.
 
 ```
                         +---------+
@@ -65,104 +59,73 @@ a **fact-check gate that forms a conditional cycle**.
                   Rebuttal PRO -> Rebuttal CON
                             v
                         +-------+
-                        | Judge |  rubric-scored verdict
+                        | Judge |  rubric: evidence > priorities > rhetoric
                         +---+---+
                             v
                         +-------+
-                        | Clerk |  deterministic memo -> verdicts/
+                        | Clerk |  writes the memo (pure code, no LLM)
                         +-------+
 ```
 
-| Agent | Responsibility |
-|---|---|
-| **Herald** | Frame the dilemma as two mutually exclusive options |
-| **Advocate PRO / CON** | In parallel: propose search queries, gather evidence, build the strongest honest case with up to 3 verifiable claims |
-| **Fact-Checker** | Independently search every claim; classify supported / contradicted / unverified; gate the revision loop |
-| **Revise** | Rebuild any case with contradicted claims (capped at 1 round) |
-| **Rebuttal PRO / CON** | Attack the opponent's case, informed by fact-check verdicts |
-| **Judge** | Score both sides on a fixed rubric (evidence quality > priority fit > rebuttals; rhetoric ignored) |
-| **Clerk** | Deterministic (no LLM): assemble the memo — verdict, reasoning, flip conditions, full fact-check ledger with sources |
+Nine nodes total. Herald frames the dilemma as two options. The advocates run
+in parallel. Fact-checker classifies each claim as supported, contradicted,
+or unverified. Contradicted claims trigger the revision loop — capped at one
+round so the graph always terminates. Rebuttals let each side attack the
+other's weakest (fact-checked) points. The judge scores it all. The clerk is
+deliberately not an LLM: the final memo is assembled by plain code, so it
+physically cannot misquote the verdict or the fact-check ledger.
 
-## Design decisions (the course checklist, applied)
+## Things that will go wrong, and what happens when they do
 
-**1. Pattern chosen upfront** — Parallel + Aggregator. The advocates are
-embarrassingly parallel by design; the judge is the aggregator. A supervisor
-pattern was rejected because no agent should "manage" the debaters — their
-independence is the point.
+This was the part of the design I spent the most time on.
 
-**2. Shared vs. isolated state decided before coding** — documented in
-`decisioncourt/state.py`. Shared read-only inputs (decision, priorities,
-framing); *isolated* per-side keys (`case_pro` vs `case_con`, etc.) so the
-parallel branches cannot conflict in LangGraph **and** cannot bias each
-other; converged keys (`fact_checks`, `verdict`) written only after the
-join. Every node returns partial updates — only the keys it owns.
+- DuckDuckGo rate-limits you. Constantly. Every search call is wrapped — on
+  failure it returns nothing, the advocate argues from general knowledge and
+  says so, and those claims come back "unverified" instead of crashing the
+  run. The judge's rubric explicitly discounts unverified claims. I tested a
+  full run with search completely dead: you still get a verdict, honestly
+  labelled.
+- A contradicted claim after the one allowed revision? The run proceeds
+  anyway and the memo discloses it. No infinite loops.
+- Malformed JSON from the model gets caught by a brace-matching extractor
+  with fallback defaults, so one bad judge response can't kill a trial.
 
-**3. Failure handling built in** —
-- *Revision loop:* contradicted claims send the offending advocate back to
-  rebuild its case, capped at one round (`revision_count`), so the graph
-  always terminates.
-- *Search degradation:* every DuckDuckGo call is fenced; on rate-limit or
-  outage it returns no sources, advocates argue from general knowledge and
-  say so, the fact-checker marks claims **unverified**, and the judge's
-  rubric explicitly discounts them. An offline run still delivers a verdict
-  — honestly labelled.
-- *Parse safety:* all LLM JSON passes through a fence-and-brace-matching
-  extractor with defensive defaults; a malformed judge response cannot
-  crash the run.
+I verified all of this before ever spending a real API call — the whole graph
+runs against a scripted fake LLM and fake/dead search in four test scenarios.
 
-**4. Verified before the first real run** — the full graph was exercised
-with a scripted fake LLM and fake/dead search: happy path, revision-fires-
-once, revision-cap (no infinite loop), and total search outage. All four
-pass without touching a real API.
-
-## Trust properties
-
-- Every claim in the memo carries a fact-check verdict and source URLs.
-- The final memo is assembled by **code, not an LLM** — the Clerk cannot
-  misquote the verdict, the cases, or the ledger.
-- The judge's rubric orders evidence quality above rhetoric and confidence
-  of tone, and must state what would flip the verdict — so the output is
-  a decision aid, not an oracle.
-
-## Quickstart
+## Running it
 
 ```bash
-git clone <this repo> && cd decision-court
+git clone https://github.com/princebawania/decision-court.git
+cd decision-court
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env   # paste in a free key from console.groq.com
 
-# free key at https://console.groq.com — no card needed
-cp .env.example .env    # paste your key into .env
-
-python main.py --demo   # two showcase decisions
-python main.py "Buy a car or use Uber daily?" --priorities "cost, flexibility"
+streamlit run app.py                 # the courtroom UI
+python main.py --demo                # or the CLI version
+python main.py "Buy a car or use cabs daily?" --priorities "cost, flexibility"
 ```
 
-A full run takes ~1-2 minutes: ~9-13 fast Groq LLM calls (Llama 3.3 70B)
-plus ~10 polite DuckDuckGo searches.
+A trial takes a minute or two: around 9–13 Groq calls (Llama 3.3 70B, free
+tier) plus ~10 politely rate-limited searches. Memos land in `verdicts/` —
+there's a sample one committed so you can see the output format without
+running anything.
 
-## Project structure
+## Repo layout
 
 ```
 decision-court/
-├── main.py                      # CLI entrypoint (+ --demo)
+├── app.py                       # Streamlit courtroom UI (the live demo)
+├── main.py                      # CLI entrypoint
 ├── decisioncourt/
-│   ├── state.py                 # AgentState — shared/isolated design documented
-│   ├── graph.py                 # LangGraph wiring: parallel fan-out, gate, cycle
-│   ├── llm.py                   # Groq factory + robust JSON extraction
-│   ├── tools/search_tool.py     # DuckDuckGo search with graceful degradation
-│   └── agents/
-│       ├── herald.py            # framing
-│       ├── advocate.py          # PRO/CON case-builders + revise node
-│       ├── fact_checker.py      # claim verification
-│       ├── rebuttal.py          # cross-examination round
-│       ├── judge.py             # rubric-scored verdict
-│       └── clerk.py             # deterministic memo writer
-├── verdicts/                    # generated decision memos land here
-├── requirements.txt
-└── .env.example
+│   ├── state.py                 # AgentState — the shared vs isolated split is documented here
+│   ├── graph.py                 # LangGraph wiring: fan-out, join, gate, loop
+│   ├── llm.py                   # Groq factory + defensive JSON parsing
+│   ├── tools/search_tool.py     # DuckDuckGo with graceful degradation
+│   └── agents/                  # herald, advocates, fact_checker, rebuttal, judge, clerk
+├── verdicts/sample_verdict.md   # example output
+└── requirements.txt
 ```
 
-## Tech stack
-
-Python · LangGraph · LangChain · Groq (Llama 3.3 70B) · DuckDuckGo Search (ddgs)
+Built with Python, LangGraph, Groq (Llama 3.3 70B), ddgs, and Streamlit.
