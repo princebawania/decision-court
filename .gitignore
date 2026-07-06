@@ -1,0 +1,6 @@
+.env
+__pycache__/
+*.pyc
+verdicts/*.md
+!verdicts/sample_verdict.md
+.venv/
