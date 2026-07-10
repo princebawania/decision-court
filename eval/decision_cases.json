@@ -1,0 +1,53 @@
+{
+  "_about": "Test dilemmas for DecisionCourt. Each case has two options (x, y) and TWO phrasings that swap which option is mentioned first (prompt_xy, prompt_yx) so we can measure order/position bias. Edit or add cases freely.",
+  "cases": [
+    {
+      "id": "job_vs_masters",
+      "x": "take the placement offer now",
+      "y": "spend six more months hunting for a better AI/ML role",
+      "priorities": "career growth, financial stability, learning curve",
+      "prompt_xy": "Should I take the placement offer now, or spend six more months hunting for a better AI/ML role?",
+      "prompt_yx": "Should I spend six more months hunting for a better AI/ML role, or take the placement offer now?"
+    },
+    {
+      "id": "influencers_vs_ads",
+      "x": "spend the marketing budget on Instagram influencers",
+      "y": "spend the marketing budget on Google performance ads",
+      "priorities": "measurable ROI, brand building on a small budget",
+      "prompt_xy": "Should a small D2C brand spend its budget on Instagram influencers, or on Google performance ads?",
+      "prompt_yx": "Should a small D2C brand spend its budget on Google performance ads, or on Instagram influencers?"
+    },
+    {
+      "id": "car_vs_uber",
+      "x": "buy a car",
+      "y": "use Uber daily",
+      "priorities": "total cost, flexibility, convenience",
+      "prompt_xy": "Should I buy a car, or just use Uber daily?",
+      "prompt_yx": "Should I just use Uber daily, or buy a car?"
+    },
+    {
+      "id": "campus_vs_flat",
+      "x": "live in the on-campus hostel",
+      "y": "rent a flat off-campus",
+      "priorities": "cost, commute time, focus and study environment",
+      "prompt_xy": "Should I live in the on-campus hostel, or rent a flat off-campus?",
+      "prompt_yx": "Should I rent a flat off-campus, or live in the on-campus hostel?"
+    },
+    {
+      "id": "bootstrap_vs_vc",
+      "x": "bootstrap the startup",
+      "y": "raise VC funding",
+      "priorities": "keeping control, speed of growth, personal financial risk",
+      "prompt_xy": "Should the founders bootstrap the startup, or raise VC funding?",
+      "prompt_yx": "Should the founders raise VC funding, or bootstrap the startup?"
+    },
+    {
+      "id": "depth_vs_ship",
+      "x": "spend a month learning the new framework deeply first",
+      "y": "start shipping features immediately and learn on the job",
+      "priorities": "long-term code quality, short-term delivery speed",
+      "prompt_xy": "Should the team spend a month learning the new framework deeply first, or start shipping features immediately and learn on the job?",
+      "prompt_yx": "Should the team start shipping features immediately and learn on the job, or spend a month learning the new framework deeply first?"
+    }
+  ]
+}

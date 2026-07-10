@@ -1,0 +1,138 @@
+{
+  "runs_total": 6,
+  "runs_completed": 6,
+  "completion_rate": 1.0,
+  "wellformed_rate": 1.0,
+  "order": {
+    "consistent": 2,
+    "evaluable": 3,
+    "consistency_rate": 0.667
+  },
+  "position_bias": {
+    "picked_first": 3,
+    "evaluable": 5,
+    "first_option_rate": 0.6
+  },
+  "factcheck": {
+    "runs": 6,
+    "avg_claims_per_run": 6.0,
+    "supported": 30,
+    "contradicted": 0,
+    "unverified": 6,
+    "pct_non_unverified_with_source": 1.0
+  },
+  "offline_robustness": {
+    "ok": false
+  },
+  "self_consistency": null,
+  "per_case": [
+    {
+      "id": "job_vs_masters",
+      "xy": {
+        "ok": true,
+        "wellformed": true,
+        "recommendation": "take the placement offer now",
+        "confidence": 80,
+        "choice": "X",
+        "factcheck": {
+          "n_claims": 6,
+          "supported": 4,
+          "contradicted": 0,
+          "unverified": 2,
+          "n_non_unverified": 4,
+          "n_non_unverified_with_source": 4
+        },
+        "revision_count": 0
+      },
+      "yx": {
+        "ok": true,
+        "wellformed": true,
+        "recommendation": "Too close to call between \"spend six more months hunting for a better AI/ML role\" and \"take the placement offer now\" \u2014 decide on your own weighting of the prior",
+        "confidence": 55,
+        "choice": "T",
+        "factcheck": {
+          "n_claims": 6,
+          "supported": 5,
+          "contradicted": 0,
+          "unverified": 1,
+          "n_non_unverified": 5,
+          "n_non_unverified_with_source": 5
+        },
+        "revision_count": 0
+      },
+      "order_consistent": false
+    },
+    {
+      "id": "influencers_vs_ads",
+      "xy": {
+        "ok": true,
+        "wellformed": true,
+        "recommendation": "spend its budget on Google performance ads",
+        "confidence": 80,
+        "choice": "Y",
+        "factcheck": {
+          "n_claims": 6,
+          "supported": 4,
+          "contradicted": 0,
+          "unverified": 2,
+          "n_non_unverified": 4,
+          "n_non_unverified_with_source": 4
+        },
+        "revision_count": 0
+      },
+      "yx": {
+        "ok": true,
+        "wellformed": true,
+        "recommendation": "spend its budget on Google performance ads",
+        "confidence": 80,
+        "choice": "Y",
+        "factcheck": {
+          "n_claims": 6,
+          "supported": 5,
+          "contradicted": 0,
+          "unverified": 1,
+          "n_non_unverified": 5,
+          "n_non_unverified_with_source": 5
+        },
+        "revision_count": 0
+      },
+      "order_consistent": true
+    },
+    {
+      "id": "car_vs_uber",
+      "xy": {
+        "ok": true,
+        "wellformed": true,
+        "recommendation": "use Uber daily",
+        "confidence": 80,
+        "choice": "Y",
+        "factcheck": {
+          "n_claims": 6,
+          "supported": 6,
+          "contradicted": 0,
+          "unverified": 0,
+          "n_non_unverified": 6,
+          "n_non_unverified_with_source": 6
+        },
+        "revision_count": 0
+      },
+      "yx": {
+        "ok": true,
+        "wellformed": true,
+        "recommendation": "use Uber daily",
+        "confidence": 80,
+        "choice": "Y",
+        "factcheck": {
+          "n_claims": 6,
+          "supported": 6,
+          "contradicted": 0,
+          "unverified": 0,
+          "n_non_unverified": 6,
+          "n_non_unverified_with_source": 6
+        },
+        "revision_count": 0
+      },
+      "order_consistent": true
+    }
+  ]
+}
